@@ -18,8 +18,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-
-const STORAGE_KEY = "bizzai-employees";
+import { supabase, BUSINESS_ID, configError } from "./supabaseClient";
 
 const emptyEmployee = {
   name: "",
@@ -29,6 +28,9 @@ const emptyEmployee = {
   role: "EMPLOYEE",
   salary: "",
   salaryCurrency: "BDT",
+  department: "",
+  employmentType: "",
+  hireDate: "",
   permissions: [],
 };
 
@@ -44,62 +46,6 @@ const permissionOptions = [
   ["MANAGE_DOCUMENTS", "Manage documents"],
   ["MANAGE_EMPLOYEES", "Manage employees"],
 ];
-
-const starterEmployees = [
-  {
-    id: 1,
-    name: "S M Zayn Arshis",
-    email: "smzaynarshis@bizzai.demo",
-    phone: "+880 1712-345678",
-    jobTitle: "Sales Manager",
-    role: "MANAGER",
-    salary: 45000,
-    salaryCurrency: "BDT",
-    permissions: [
-      "VIEW_DASHBOARD",
-      "MANAGE_ORDERS",
-      "MANAGE_CUSTOMERS",
-      "MANAGE_TASKS",
-    ],
-  },
-  {
-    id: 2,
-    name: "Kazi Rayeed Asif",
-    email: "kazirayeedasif@bizzai.demo",
-    phone: "+880 1812-345678",
-    jobTitle: "Sales Executive",
-    role: "EMPLOYEE",
-    salary: 28000,
-    salaryCurrency: "BDT",
-    permissions: ["VIEW_DASHBOARD", "MANAGE_ORDERS"],
-  },
-  {
-    id: 3,
-    name: "Hasin Shadab",
-    email: "hasinshadab@bizzai.demo",
-    phone: "+880 1912-345678",
-    jobTitle: "System Administrator",
-    role: "ADMIN",
-    salary: 55000,
-    salaryCurrency: "BDT",
-    permissions: [
-      "VIEW_DASHBOARD",
-      "MANAGE_EMPLOYEES",
-      "MANAGE_DOCUMENTS",
-      "VIEW_FINANCES",
-    ],
-  },
-];
-
-function getSavedEmployees() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved !== null) return JSON.parse(saved);
-  } catch (error) {
-    console.error("Could not read saved employee data:", error);
-  }
-  return starterEmployees;
-}
 
 function formatSalary(value, currency = "BDT") {
   if (value === null || value === undefined || value === "") return "Not set";
@@ -118,7 +64,9 @@ function getInitials(name = "") {
 }
 
 function App() {
-  const [employees, setEmployees] = useState(getSavedEmployees);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState(configError);
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
@@ -126,9 +74,26 @@ function App() {
   const [editing, setEditing] = useState(null);
   const [mobileNav, setMobileNav] = useState(false);
 
+  async function loadEmployees() {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    const { data, error } = await supabase.rpc("list_employees", {
+      p_business_id: BUSINESS_ID,
+    });
+    if (error) {
+      setPageError(`Could not load employees: ${error.message}`);
+    } else {
+      setEmployees(data || []);
+      setPageError("");
+    }
+    setLoading(false);
+  }
+
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
-  }, [employees]);
+    loadEmployees();
+  }, []);
 
   const filtered = useMemo(
     () =>
@@ -169,37 +134,39 @@ function App() {
   }
 
   async function saveEmployee(form) {
-    const employeeDetails = {
+    if (!supabase) throw new Error(configError);
+    const payload = {
       ...form,
+      id: editing ? editing.id : null,
       salary: form.salary === "" ? null : Number(form.salary),
     };
+    const { error } = await supabase.rpc("save_employee", {
+      p_business_id: BUSINESS_ID,
+      p_employee: payload,
+    });
+    if (error) throw new Error(error.message);
 
-    if (editing) {
-      setEmployees((current) =>
-        current.map((employee) =>
-          employee.id === editing.id
-            ? { ...employee, ...employeeDetails }
-            : employee,
-        ),
-      );
-      setNotice("Employee details updated successfully.");
-    } else {
-      setEmployees((current) => [
-        ...current,
-        { ...employeeDetails, id: Date.now() },
-      ]);
-      setNotice("Employee added successfully.");
-    }
-
+    await loadEmployees();
+    setNotice(
+      editing
+        ? "Employee details updated successfully."
+        : "Employee added successfully.",
+    );
     setModalOpen(false);
     setEditing(null);
   }
 
   async function deleteEmployee(employee) {
     if (!window.confirm(`Delete ${employee.name}'s employee profile?`)) return;
-    setEmployees((current) =>
-      current.filter((item) => item.id !== employee.id),
-    );
+    const { error } = await supabase.rpc("delete_employee", {
+      p_business_id: BUSINESS_ID,
+      p_employee_id: employee.id,
+    });
+    if (error) {
+      setPageError(`Could not delete employee: ${error.message}`);
+      return;
+    }
+    await loadEmployees();
     setNotice("Employee profile deleted.");
   }
 
@@ -307,6 +274,7 @@ function App() {
             </button>
           </div>
 
+          {pageError && <div className="alert alert-error">{pageError}</div>}
           {notice && <div className="alert alert-success">{notice}</div>}
 
           <section className="stats-grid">
@@ -389,7 +357,9 @@ function App() {
                   {filtered.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="table-message">
-                        {employees.length
+                        {loading
+                          ? "Loading employees..."
+                          : employees.length
                           ? "No employees match your search."
                           : "No employees yet. Add your first team member to get started."}
                       </td>
@@ -456,13 +426,13 @@ function App() {
               <span>
                 Showing {filtered.length} of {employees.length} employees
               </span>
-              <span>Saved in this browser</span>
+              <span>Saved in Supabase</span>
             </div>
           </section>
 
           <div className="bottom-note">
-            <ShieldCheck size={16} /> Demo mode: employee changes are saved in
-            this browser only. They are not shared with other devices.
+            <ShieldCheck size={16} /> Employee changes are saved to your
+            Supabase database and shared across devices.
           </div>
         </div>
       </main>
