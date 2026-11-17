@@ -1,3 +1,4 @@
+import Finance from "./finance/Finance";
 import { useEffect, useMemo, useState } from "react";
 import Products from "./Online_Store/Products";
 import {
@@ -249,6 +250,28 @@ function App() {
   }}
 >
   <Package size={18} /> Products
+</a>    <a
+  className={`nav-item ${view === "finance" ? "active" : ""}`}
+  href="#finance"
+  onClick={(event) => {
+    event.preventDefault();
+    setView("finance");
+    setMobileNav(false);
+  }}
+>
+  Financial dashboard
+</a>
+
+<a
+  className={`nav-item ${view === "expenses" ? "active" : ""}`}
+  href="#expenses"
+  onClick={(event) => {
+    event.preventDefault();
+    setView("expenses");
+    setMobileNav(false);
+  }}
+>
+  Expense tracking
 </a>
         </nav>
         <div className="sidebar-bottom">
@@ -298,7 +321,9 @@ function App() {
           </div>
         </header>
 
-{view === "products" ? (
+{view === "finance" || view === "expenses" ? (
+  <Finance mode={view} />
+) : view === "products" ? (
   <Products />
 ) : view === "customers" ? (
   <Customers />
