@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import Products from "./Online_Store/Products";
 import {
   Activity,
   BriefcaseBusiness,
   Building2,
+  Package,
   ChevronDown,
   CircleHelp,
   LayoutDashboard,
@@ -21,6 +23,7 @@ import {
 } from "lucide-react";
 import { supabase, BUSINESS_ID, configError } from "./supabaseClient";
 import Customers from "./Customers.jsx";
+
 
 const emptyEmployee = {
   name: "",
@@ -76,6 +79,7 @@ function App() {
   const [editing, setEditing] = useState(null);
   const [mobileNav, setMobileNav] = useState(false);
   const [view, setView] = useState("employees");
+
 
   async function loadEmployees() {
     if (!supabase) {
@@ -211,19 +215,42 @@ function App() {
             <LayoutDashboard size={18} /> Dashboard
           </a>
           <a
-            className={`nav-item ${view === "employees" ? "active" : ""}`}
-            href="#employees"
-            onClick={(e) => { e.preventDefault(); setView("employees"); setMobileNav(false); }}
-          >
-            <Users size={18} /> Employees{" "}
-            <span className="nav-count">{employees.length}</span>
-          </a>
-          <a
-            className={`nav-item ${view === "customers" ? "active" : ""}`}
-            href="#customers"
-            onClick={(e) => { e.preventDefault(); setView("customers"); setMobileNav(false); }}
-          >
-            <UserRound size={18} /> Customers
+<a
+  className={`nav-item ${view === "employees" ? "active" : ""}`}
+  href="#employees"
+  onClick={(e) => {
+    e.preventDefault();
+    setView("employees");
+    setMobileNav(false);
+  }}
+>
+  <Users size={18} /> Employees
+  <span className="nav-count">{employees.length}</span>
+</a>
+
+<a
+  className={`nav-item ${view === "customers" ? "active" : ""}`}
+  href="#customers"
+  onClick={(e) => {
+    e.preventDefault();
+    setView("customers");
+    setMobileNav(false);
+  }}
+>
+  <UserRound size={18} /> Customers
+</a>
+
+<a
+  className={`nav-item ${view === "products" ? "active" : ""}`}
+  href="#products"
+  onClick={(e) => {
+    e.preventDefault();
+    setView("products");
+    setMobileNav(false);
+  }}
+>
+  <Package size={18} /> Products
+</a>
           </a>
         </nav>
         <div className="sidebar-bottom">
@@ -273,8 +300,12 @@ function App() {
           </div>
         </header>
 
-        {view === "customers" ? <Customers /> : (
-        <div className="page">
+{view === "products" ? (
+  <Products />
+) : view === "customers" ? (
+  <Customers />
+) : (
+  <div className="page">
           <div className="page-heading">
             <div>
               <div className="eyebrow">TEAM WORKSPACE</div>
@@ -288,10 +319,8 @@ function App() {
               <Plus size={17} /> Add employee
             </button>
           </div>
-
           {pageError && <div className="alert alert-error">{pageError}</div>}
           {notice && <div className="alert alert-success">{notice}</div>}
-
           <section className="stats-grid">
             <StatCard
               icon={<Users size={19} />}
@@ -451,6 +480,7 @@ function App() {
           </div>
         </div>
         )}
+
       </main>
       {modalOpen && (
         <EmployeeModal
