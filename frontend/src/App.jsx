@@ -215,7 +215,6 @@ function App() {
             <LayoutDashboard size={18} /> Dashboard
           </a>
           <a
-<a
   className={`nav-item ${view === "employees" ? "active" : ""}`}
   href="#employees"
   onClick={(e) => {
@@ -251,7 +250,6 @@ function App() {
 >
   <Package size={18} /> Products
 </a>
-          </a>
         </nav>
         <div className="sidebar-bottom">
           <a className="nav-item" href="#settings">
