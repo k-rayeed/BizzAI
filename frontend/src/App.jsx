@@ -14,11 +14,13 @@ import {
   Settings,
   ShieldCheck,
   Trash2,
+  UserRound,
   Users,
   Wallet,
   X,
 } from "lucide-react";
 import { supabase, BUSINESS_ID, configError } from "./supabaseClient";
+import Customers from "./Customers.jsx";
 
 const emptyEmployee = {
   name: "",
@@ -73,6 +75,7 @@ function App() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [mobileNav, setMobileNav] = useState(false);
+  const [view, setView] = useState("employees");
 
   async function loadEmployees() {
     if (!supabase) {
@@ -207,9 +210,20 @@ function App() {
           <a className="nav-item" href="#dashboard">
             <LayoutDashboard size={18} /> Dashboard
           </a>
-          <a className="nav-item active" href="#employees">
+          <a
+            className={`nav-item ${view === "employees" ? "active" : ""}`}
+            href="#employees"
+            onClick={(e) => { e.preventDefault(); setView("employees"); setMobileNav(false); }}
+          >
             <Users size={18} /> Employees{" "}
             <span className="nav-count">{employees.length}</span>
+          </a>
+          <a
+            className={`nav-item ${view === "customers" ? "active" : ""}`}
+            href="#customers"
+            onClick={(e) => { e.preventDefault(); setView("customers"); setMobileNav(false); }}
+          >
+            <UserRound size={18} /> Customers
           </a>
         </nav>
         <div className="sidebar-bottom">
@@ -249,7 +263,7 @@ function App() {
               <Menu size={20} />
             </button>
             <div className="breadcrumb">
-              Workspace <span>/</span> <strong>Employee management</strong>
+              Workspace <span>/</span> <strong>{view === "customers" ? "Customer management" : "Employee management"}</strong>
             </div>
           </div>
           <div className="topbar-right">
@@ -259,6 +273,7 @@ function App() {
           </div>
         </header>
 
+        {view === "customers" ? <Customers /> : (
         <div className="page">
           <div className="page-heading">
             <div>
@@ -435,8 +450,8 @@ function App() {
             Supabase database and shared across devices.
           </div>
         </div>
+        )}
       </main>
-
       {modalOpen && (
         <EmployeeModal
           employee={editing}
